@@ -1,0 +1,74 @@
+<html>
+
+<head>
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js"></script>
+	<script type="text/javascript">
+		var baseURL = 'http://en.wiktionary.org';
+
+		function showPage(page, text) {
+			var sourceurl = baseURL + '/wiki/' + page;
+			$('#pagetitle').text(page);
+			$('#wikiInfo').html(text);
+			$('#sourceurl').attr('href', sourceurl);
+			$('#licenseinfo').show();
+
+			var wikiInfo = document.getElementById("wikiInfo");
+			var wordInfo = null;
+
+			var i = 0;
+			while (wikiInfo.children.length > 1) {
+				var child = wikiInfo.children[i];
+				if (wordInfo != null || child.tagName != "OL") {
+					wikiInfo.removeChild(child);
+				} else {
+					wordInfo = child;
+					i++;
+				}
+			}
+
+
+			for (var i = 0; i < wordInfo.children.length; i++) {
+				var listItem = wordInfo.children[i];
+				for (var j = listItem.children.length - 1; j >= 0; j--) {
+					var child = listItem.children[j];
+					if (child.tagName == "UL" || child.tagName == "DL") {
+						listItem.removeChild(child);
+					}
+				}
+				listItem.innerHTML = listItem.textContent; // Remove hyperlinks and formatting
+			}
+
+			// now you can modify content of #wikiInfo as you like
+			/*$('#wikiInfo').find('a:not(.references a):not(.extiw):not([href^="#"])').attr('href',
+			  function() { return baseURL + $(this).attr('href');
+			});*/
+			// ...
+		}
+		$(document).ready(function() {
+			$('#pagetitle').hide();
+			$('#word').change(function() {
+				var page = this.value;
+				$('#wikiInfo').html('...please wait...');
+				$.getJSON(baseURL + '/w/api.php?action=parse&format=json&prop=text&disabletoc=true&callback=?&page=' + page,
+					function(json) {
+						if (!json.hasOwnProperty("error")) {
+							showPage(page, json.parse.text['*']);
+						} else {
+							$('#wikiInfo').html('word not found');
+							$('#licenseinfo').hide();
+						}
+					});
+			});
+		});
+	</script>
+</head>
+
+<body>
+	Lookup a word: <input type="text" id="word" />
+	<h1 id='pagetitle'></h1>
+	<div id="wikiInfo"></div>
+	<div id="licenseinfo" style="font-size:small; display:none;">
+		Modified original content <a id='sourceurl'>from Wiktionary</a>. Text available under <a href="http:Content is available under the <a href=" http://creativecommons.org/licenses/by-sa/3.0/ ">Creative Commons Attribution/Share-Alike License</a>.
+	</div>
+</body>
+</html>
