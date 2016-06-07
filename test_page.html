@@ -2,6 +2,7 @@
 <meta charset=utf-8>
 
 <body>
+
 <h3>Norwegian</h3>
 <p>Ære, øre, nyttår.</p>
 
@@ -12,6 +13,33 @@
 
 <input type="text" name="lname"><br>
 <input type="submit" value="Submit">
+
+<style>
+ol { background-color: red; }
+</style>
+
+<div id="list">
+<ol id="num">
+<li>Test</li>
+<li>Hello</li>
+<li>World</li>
+</ol>
+
+<ol>
+<li>Test</li>
+<li>Hello</li>
+<li>World</li>
+</ol>
+
+</div>
+
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js"></script>
+<script type="text/javascript">
+
+$("#list > ol").css("background-color", "blue");
+
+</script>
+
 
 </script>
 </body>

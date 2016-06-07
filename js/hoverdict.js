@@ -3,19 +3,24 @@ var hoveredWord = "", shownWord = "-1";
 var mousePos = {};
 var popup = $('<div id="defpopup"></div>').appendTo(document.body);
 
-var popupCss = {
-	'border':'1px solid #e3e3e3',
-	'overflow':'hidden',
-	'padding':'2px',
-	'margin':0,
-	'position':'absolute',
-	'z-index':2147483647,
-	'border-radius':'3px',
-	'opacity':'0.0',
-	'background':'linear-gradient(to right bottom, #ffffff, #ffffff 50%, #ededed)',
-	'box-shadow':'3px 3px 9px 5px rgba(0,0,0,0.33)'
-};
-popup.css(popupCss);
+// Create style sheet for popup
+var sheet = document.createElement('style')
+sheet.innerHTML =
+	"#defpopup { \
+		border: 1px solid #e3e3e3; \
+		overflow: hidden; \
+		padding: 2px; \
+		margin: 0; \
+		position: absolute; \
+		z-index: 2147483647; \
+		border-radius: 3px; \
+		opacity: 0.0; \
+		background: linear-gradient(to right bottom, #ffffff, #ffffff 50%, #ededed); \
+		box-shadow: 3px 3px 9px 5px rgba(0,0,0,0.33); \
+	} \
+	#defpopup > h2 { font-family: 'Times New Roman'; font-size: 18px; font-style: normal; color: #000000; line-height: 100%; margin: 5px 0px 8px 5px; padding: 0px; } \
+	#defpopup > ol { font-family: 'Times New Roman'; font-size: 16px; font-style: normal; color: #000000; list-style-type: decimal; margin: 0px 0px 0px 24px; padding: 0px; line-height: 150%; }";
+document.body.appendChild(sheet);
 
 function documentMouseMove(event) {
 	// Move popup
