@@ -157,12 +157,13 @@ function createDefinition(word) {
 			if (!json.hasOwnProperty("error")) {
 				var text = json.parse.text['*'];
 				popup.html(text);
-
+				
 				var wikiInfo = popup[0];
 				var wordInfo = null;
 
+				// Find the first bullet list
 				var i = 0;
-				while (wikiInfo.children.length > 1) {
+				while (wikiInfo.children.length > i) {
 					var child = wikiInfo.children[i];
 					if (wordInfo != null || child.tagName != "OL") {
 						wikiInfo.removeChild(child);
@@ -171,7 +172,6 @@ function createDefinition(word) {
 						i++;
 					}
 				}
-
 
 				for (var i = 0; i < wordInfo.children.length; i++) {
 					var listItem = wordInfo.children[i];
@@ -183,7 +183,6 @@ function createDefinition(word) {
 					}
 					listItem.innerHTML = listItem.textContent; // Remove hyperlinks and formatting
 				}
-				
 				
 				$("<h2>"+(word.charAt(0).toUpperCase() + word.slice(1))+"</h2>").prependTo(popup);
 			} else {

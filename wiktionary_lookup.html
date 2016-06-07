@@ -16,7 +16,7 @@
 			var wordInfo = null;
 
 			var i = 0;
-			while (wikiInfo.children.length > 1) {
+			while (wikiInfo.children.length > i) {
 				var child = wikiInfo.children[i];
 				if (wordInfo != null || child.tagName != "OL") {
 					wikiInfo.removeChild(child);
