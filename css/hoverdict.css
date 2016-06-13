@@ -1,0 +1,84 @@
+#hoverdict {
+	all: initial;
+	border: 1px solid #e3e3e3;
+	overflow-y: scroll;
+	overflow-x: hidden;
+	padding: 0em 1em 1em 1em;
+	margin: 0;
+	position: absolute;
+	z-index: 2147483647;
+	border-radius: 10px;
+	opacity: 0.0;
+	background: linear-gradient(to right bottom, #ffffff, #ffffff 50%, #ededed);
+	box-shadow: 3px 3px 9px 5px rgba(0,0,0,0.33);
+	max-width: 564px;
+	max-height: 284px;
+	font-family: Arial, Tahoma, sans-serif;
+    font-size: 14px;
+}
+
+#hoverdict .hd_ext_language_header {
+	all: initial;
+	display: block;
+    font-size: 125%;
+	border-bottom: solid 1px #AAAAAA;
+	margin-bottom: 1em;
+	margin-top: 1em;
+}
+
+#hoverdict .hd_ext_header * {
+	display: inline;
+}
+
+#hoverdict .hd_ext_header_text {
+	all: initial;
+	font-weight: bold;
+    font-size: 125%;
+    text-decoration: none;
+}
+
+#hoverdict .hd_ext_header_pronunciation {
+	all: initial;
+	margin-left: 1em;
+}
+
+#hoverdict .hd_ext_word_class {
+	all: initial;
+	font-weight: bold;
+    text-decoration: none;
+}
+
+#hoverdict ol {
+	all: initial;
+	list-style-type: disc; 
+	list-style-position: outside;
+	margin-bottom: 20em;
+}
+
+#hoverdict li {
+	all: initial;
+    margin-left: 1em;
+	display: list-item;
+}
+
+#hoverdict a {
+	all: initial;
+}
+
+#hoverdict dl {
+	all: initial;
+	display: block;
+    margin-top: 0.2em;
+    margin-bottom: 0.5em;
+}
+
+#hoverdict dd {
+	all: initial;
+	display: block;
+	margin-left: 1.6em;
+}
+
+/*#hoverdict .hd_ext_glossary_text {
+	font-size: 0.85em;
+    color: rgb(102, 102, 102);
+}*/

@@ -1,37 +1,13 @@
 var pressedKeys = {};
-var hoveredWord = "", shownWord = "-1";
-var mousePos = {};
-var popup = $('<div id="defpopup"></div>').appendTo(document.body);
-
-// Create style sheet for popup
-var sheet = document.createElement('style')
-sheet.innerHTML =
-	"#defpopup { \
-		border: 1px solid #e3e3e3; \
-		overflow: hidden; \
-		padding: 2px; \
-		margin: 0; \
-		position: absolute; \
-		z-index: 2147483647; \
-		border-radius: 3px; \
-		opacity: 0.0; \
-		background: linear-gradient(to right bottom, #ffffff, #ffffff 50%, #ededed); \
-		box-shadow: 3px 3px 9px 5px rgba(0,0,0,0.33); \
-	} \
-	#defpopup > h2 { font-family: 'Times New Roman'; font-size: 18px; font-style: normal; color: #000000; line-height: 100%; margin: 5px 0px 8px 5px; padding: 0px; } \
-	#defpopup > ol { font-family: 'Times New Roman'; font-size: 16px; font-style: normal; color: #000000; list-style-type: decimal; margin: 0px 0px 0px 24px; padding: 0px; line-height: 150%; }";
-document.body.appendChild(sheet);
+var popupEnabled = false;
+var mousePagePosition = {};
+var mouseClientPosition = {};
+var popup = $('<div id="hoverdict"></div>').appendTo(document.body);
 
 function documentMouseMove(event) {
-	// Move popup
-	var position = {top:mousePos.top, left:mousePos.left};
-	position.top += 10;
-	position.left += 10;
-	popup.css({top:Math.round(position.top), left:Math.round(position.left)});
-	
-	// Return the word the cursor is over
-	hoveredWord = getFullWord(event);
-	mousePos = {top:event.pageY, left:event.pageX};
+	// Store mouse position
+	mousePagePosition = {top:event.pageY, left:event.pageX};
+	mouseClientPosition = {top:event.clientY, left:event.clientX};
 }
 
 
@@ -154,42 +130,183 @@ function documentMouseMove(event) {
 	hz.hzImg.css({top:Math.round(position.top), left:Math.round(position.left)});
 }*/
 
+function walkTheDOM(node, func) {
+    func(node);
+    node = node.firstChild;
+    while (node) {
+        walkTheDOM(node, func);
+        node = node.nextSibling;
+    }
+}
+
 function createDefinition(word) {
 	word = word.toLowerCase();
 	var apiUrl = 'http://en.wiktionary.org/w/api.php?action=parse&format=json&prop=text&disabletoc=true&page=' + word;
 	chrome.runtime.sendMessage({action:'getJSON', url:apiUrl},
 		function(json) {
 			if (!json.hasOwnProperty("error")) {
-				var text = json.parse.text['*'];
-				popup.html(text);
+				// Create dummy element with result from API
+				var wikiEntry = $('<div></div>');
+				wikiEntry.html(json.parse.text['*']);
+				var wikiInfo = wikiEntry[0]; // Get JS object
 				
-				var wikiInfo = popup[0];
-				var wordInfo = null;
-
-				// Find the first bullet list
-				var i = 0;
-				while (wikiInfo.children.length > i) {
-					var child = wikiInfo.children[i];
-					if (wordInfo != null || child.tagName != "OL") {
-						wikiInfo.removeChild(child);
-					} else {
-						wordInfo = child;
-						i++;
-					}
+				// Result map
+				var results = {};
+				
+				// Word entry
+				var entry = null;
+				function Entry(type) {
+					this.type = type;
+					this.definitions = [];
 				}
-
-				for (var i = 0; i < wordInfo.children.length; i++) {
-					var listItem = wordInfo.children[i];
-					for (var j = listItem.children.length - 1; j >= 0; j--) {
-						var child = listItem.children[j];
-						if (child.tagName == "UL" || child.tagName == "DL") {
-							listItem.removeChild(child);
+				
+				// Search state enum
+				var SearchState = {
+					FIND_LANGUAGE: 1,
+					FIND_NEW_SECTION: 2,
+					FIND_PRONUNCIATION: 3,
+					FIND_DEFINITIONS: 4,
+				}
+				
+				var state = SearchState.FIND_LANGUAGE;
+				var language = "";
+				
+				for (var i = 0; i < wikiInfo.children.length; i++) {
+					var child = wikiInfo.children[i];
+					switch(state) {
+						case SearchState.FIND_LANGUAGE: {
+							// The next headline we find is the language
+							if(child.children.length > 0 && child.children[0].className == "mw-headline") {
+								language = child.textContent.substr(0, child.textContent.length - 6);
+								state = SearchState.FIND_NEW_SECTION;
+								
+								// Add language to map if it doesn't exist
+								if(!(language in results)) {
+									results[language] = {
+										pronunciation: null,
+										entries: []
+									}
+								}
+								
+								console.log("Current language:", language);
+							}
+						}
+						break;
+						
+						case SearchState.FIND_NEW_SECTION: {
+							// Add entry
+							if(entry != null) {
+								results[language].entries.push(entry);
+								
+								console.log("Entry added:", entry);
+								
+								entry = null;
+							}
+							
+							// Find the next headline
+							if(child.children.length > 0 && child.children[0].className == "mw-headline") {
+								// What section is this?
+								var sectionName = child.children[0].textContent;
+								
+								if(sectionName == "Pronunciation") {
+									state = SearchState.FIND_PRONUNCIATION;
+								}
+								else if(sectionName == "Noun" || sectionName == "Verb" || sectionName == "Adjective" || sectionName == "Adverb" || sectionName == "Pronoun" || sectionName == "Preposition" || sectionName == "Conjunction" || sectionName == "Determiner") {
+									state = SearchState.FIND_DEFINITIONS;
+									entry = new Entry(sectionName);
+								}
+								
+								if(state == SearchState.FIND_NEW_SECTION) {
+									console.log("Section ignored:", sectionName);
+								}
+								else {
+									console.log("Section entered:", sectionName);
+								}
+							}
+							else if(child.tagName == "HR") {
+								// End of entries for this language
+								state = SearchState.FIND_LANGUAGE;
+							}
+						}
+						break;
+						
+						case SearchState.FIND_PRONUNCIATION: {
+							// Find and store pronunciation
+							if(child.tagName == "UL" && child.children[0].tagName == "LI") {
+								var ipa = child.children[0].getElementsByClassName("IPA");
+								if(ipa.length > 0) {
+									results[language].pronunciation = ipa[0].textContent;
+								}
+								state = SearchState.FIND_NEW_SECTION;
+								
+								console.log("Pronunciation found:", results[language].pronunciation);
+							}
+						}
+						break;
+						
+						case SearchState.FIND_DEFINITIONS: {
+							if(child.tagName == "OL") {
+								for(var j = 0; j < child.children.length; j++) {
+									var listEntryChild = child.children[j];
+									
+									// Parse list entry content
+									for(var k = listEntryChild.children.length - 1; k >= 0; k--) {
+										var listContentElement = listEntryChild.children[k];
+										if(listContentElement.tagName == "DL") {
+											listContentElement.className = "hd_ext_example_entry_dl";
+										}
+										if(listContentElement.className == "HQToggle" || listContentElement.tagName == "UL") {
+											listEntryChild.removeChild(listContentElement);
+										}
+									}
+									entry.definitions.push(listEntryChild.innerHTML);
+								}
+								state = SearchState.FIND_NEW_SECTION;
+							}
 						}
 					}
-					listItem.innerHTML = listItem.textContent; // Remove hyperlinks and formatting
 				}
 				
-				$("<h2>"+(word.charAt(0).toUpperCase() + word.slice(1))+"</h2>").prependTo(popup);
+				// Add entry
+				if(entry != null) {
+					results[language].entries.push(entry);
+					
+					console.log("Entry added:", entry);
+				}
+				
+				popup.empty();
+				
+				for(var key in results) {
+					if(results.hasOwnProperty(key)) {
+						// Language
+						$('<span class="hd_ext_language_header">' + key + '</span>').appendTo(popup);
+						
+						// Create entry header
+						var header = $('<div class="hd_ext_header"></div>').appendTo(popup);
+						header.append($('<a class="hd_ext_header_text" href="http://en.wiktionary.org/wiki/' + word + '">' + word + '</a>'));
+						if(results[key].pronunciation != null) {
+							header.append($('<span class="hd_ext_header_pronunciation">' + results[key].pronunciation + '</span>'));
+						}
+						
+						for(var i = 0; i < results[key].entries.length; i++) {
+							$('<span class="hd_ext_word_class">' + results[key].entries[i].type + '</span>').appendTo(popup);
+							var list = $('<ol></ol>').appendTo(popup);
+							for(var j = 0; j < results[key].entries[i].definitions.length; j++) {
+								var def = results[key].entries[i].definitions[j];
+								var listEntry = $('<li></li>');
+								console.log(def.charAt(0));
+								if(def.charAt(0) == "(" && def.indexOf(")") > 0) {
+									listEntry.append($('<span class="hd_ext_glossary_text">' + def.substr(0, def.indexOf(")") + 1) + '</span>'));
+									def = def.substr(def.indexOf(")") + 1);
+								}
+								listEntry.append($('<span class="hd_ext_bullet_list_entry_text">' + def + '</span>'));
+								list.append(listEntry);
+							}
+						}
+					}
+				}
+				
+				//$("<h2>" + (word.charAt(0).toUpperCase() + word.slice(1)) + " " + results[language].pronunciation + "</h2>").appendTo(popup);
 			} else {
 				popup.html('Definition for "' + word + '" not found');
 			}
@@ -198,23 +315,36 @@ function createDefinition(word) {
 
 function documentKeyDown(event) {
 	pressedKeys[event.keyCode] = true;
-	if(pressedKeys[16] && pressedKeys[17] && hoveredWord !== "") {
-		if(shownWord !== hoveredWord) {
-			popup.empty();
-			popup.html("Please wait...");
-			createDefinition(hoveredWord);
-			shownWord = hoveredWord;
-		}
+	if(!popupEnabled && pressedKeys[16] && pressedKeys[17]) {
+		// Move popup to mouse position
+		var position = {top:mousePagePosition.top, left:mousePagePosition.left};
+		position.top += 10;
+		position.left += 10;
+		popup.css({top:Math.round(position.top), left:Math.round(position.left)});
+		
+		// Return the word the cursor is over
+		var hoveredWord = getFullWord(mouseClientPosition);
+
+		// Get word definition
+		popup.empty();
+		popup.html("Please wait...");
+		createDefinition(hoveredWord);
+	
+		// Show popup
 		popup.stop(true, true).fadeTo(100, 1.0);
+		popupEnabled = true;
 	}
 }
 
 function documentKeyUp(event) {
 	pressedKeys[event.keyCode] = false;
-	
-	if(!pressedKeys[16] && !pressedKeys[17] /*&& isPopupShown*/) {
+}
+
+function documentMouseDown(event) {
+	if(!popup[0].contains(event.target)) {
 		popup.stop(true, true).fadeOut(100);
+		popupEnabled = false;
 	}
 }
 
-$(document).mousemove(documentMouseMove).keydown(documentKeyDown).keyup(documentKeyUp);
+$(document).mousemove(documentMouseMove).keydown(documentKeyDown).keyup(documentKeyUp).mousedown(documentMouseDown);

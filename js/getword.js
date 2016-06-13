@@ -1,10 +1,10 @@
 // Get the full word the cursor is over regardless of span breaks
-function getFullWord(event) {
+function getFullWord(clientPos) {
 	var i, begin, end, range, textNode, offset;
 
 	// Chrome
 	if (document.caretRangeFromPoint) {
-		range = document.caretRangeFromPoint(event.clientX, event.clientY);
+		range = document.caretRangeFromPoint(clientPos.left, clientPos.top);
 		textNode = range.startContainer;
 		offset = range.startOffset;
 	}

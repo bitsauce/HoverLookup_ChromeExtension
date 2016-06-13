@@ -20,7 +20,8 @@
         {
             "js": ["js/jquery-1.12.4.min.js", "js/getword.js", "js/hoverdict.js"],
             "matches": ["<all_urls>"],
-            "all_frames": true
+            "all_frames": true,
+			"css": ["css/hoverdict.css"]
         }
 	]
 }
