@@ -33,6 +33,7 @@
 	font-weight: bold;
     font-size: 125%;
     text-decoration: none;
+	cursor: pointer;
 }
 
 #hoverdict .hd_ext_header_pronunciation {
@@ -60,6 +61,12 @@
 
 #hoverdict a {
 	all: initial;
+	cursor: pointer;
+	color: #0000EE;
+}
+
+#hoverdict a:hover {
+    text-decoration: underline;
 }
 
 #hoverdict dl {

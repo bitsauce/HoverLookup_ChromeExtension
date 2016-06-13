@@ -14,6 +14,10 @@ function documentMouseMove(event) {
 	mouseClientPosition = {top:event.clientY, left:event.clientX};
 }
 
+function openInNewTab(url) {
+	window.open(url, '_blank').focus();
+}
+
 function walkTheDOM(node, func) {
     func(node);
     node = node.firstChild;
@@ -23,7 +27,20 @@ function walkTheDOM(node, func) {
     }
 }
 
-function createDefinition(word) {
+function lookupWord(word, initialPosition) {
+	// Make sure popup is empty
+	popup.empty();
+	
+	// Show "Please wait" while parsing API results
+	popup.append($('<span class="hd_ext_language_header">Please wait...</span>'));
+	
+	// Resize and move popup so it is inside the viewport
+	var position = { top: initialPosition.top, left: initialPosition.left };
+	position.left = Math.min(position.left + 10, document.body.scrollWidth - POPUP_WAITING_WIDTH - 40);
+	position.top = Math.min(position.top + 10, document.body.scrollHeight - POPUP_WAITING_HEIGHT - 40);
+	popup.css({"top": Math.round(position.top), "left": Math.round(position.left), "max-width": POPUP_WAITING_WIDTH, "min-width": POPUP_WAITING_WIDTH, "max-height": POPUP_WAITING_HEIGHT, "min-height": POPUP_WAITING_HEIGHT});
+	
+	// Make API call
 	word = word.toLowerCase();
 	var apiUrl = 'http://en.wiktionary.org/w/api.php?action=parse&format=json&prop=text&disabletoc=true&page=' + word;
 	chrome.runtime.sendMessage({action:'getJSON', url:apiUrl},
@@ -136,15 +153,36 @@ function createDefinition(word) {
 									// Parse list entry content
 									for(var k = listEntryChild.children.length - 1; k >= 0; k--) {
 										var listContentElement = listEntryChild.children[k];
-										if(listContentElement.tagName == "DL") {
-											listContentElement.className = "hd_ext_example_entry_dl";
-										}
+										
+										// Remove long text elements
 										if(listContentElement.className == "HQToggle" || listContentElement.tagName == "UL") {
 											listEntryChild.removeChild(listContentElement);
 										}
 									}
-									entry.definitions.push(listEntryChild.innerHTML);
+									entry.definitions.push(listEntryChild);
 								}
+								
+								// Modify hyperlinks
+								walkTheDOM(child, function(node) {
+									// Change links so that when clicked, they will display the definition for the word clicked in the popup
+									if(node.tagName == "A") {
+										if(node.hasAttribute("href")) {
+											var redirectWord = node.getAttribute("href").replace("/wiki/", "");
+											
+											// Remove href parameters
+											if(redirectWord.indexOf("#") > 0) {
+												redirectWord = redirectWord.substr(0, redirectWord.indexOf("#"));
+											}
+											
+											node.redirectWord = redirectWord;
+											node.removeAttribute("href");
+											node.addEventListener('click', function(e) {
+												lookupWord(e.target.redirectWord, initialPosition);
+											});
+										}
+									}
+								});
+									
 								state = SearchState.FIND_NEW_SECTION;
 							}
 						}
@@ -168,7 +206,11 @@ function createDefinition(word) {
 						
 						// Create entry header
 						var header = $('<div class="hd_ext_header"></div>').appendTo(popup);
-						header.append($('<a class="hd_ext_header_text" href="http://en.wiktionary.org/wiki/' + word + '">' + word + '</a>'));
+						var headerText = $('<a class="hd_ext_header_text">' + word + '</a>').appendTo(header);
+						headerText.click(function() {
+							openInNewTab('http://en.wiktionary.org/wiki/' + word);
+						});
+						
 						if(results[key].pronunciation != null) {
 							header.append($('<span class="hd_ext_header_pronunciation">' + results[key].pronunciation + '</span>'));
 						}
@@ -177,21 +219,22 @@ function createDefinition(word) {
 							$('<span class="hd_ext_word_class">' + results[key].entries[i].type + '</span>').appendTo(popup);
 							var list = $('<ol></ol>').appendTo(popup);
 							for(var j = 0; j < results[key].entries[i].definitions.length; j++) {
-								var def = results[key].entries[i].definitions[j];
+								/*var def = results[key].entries[i].definitions[j];
 								var listEntry = $('<li></li>');
 								if(def.charAt(0) == "(" && def.indexOf(")") > 0) {
 									listEntry.append($('<span class="hd_ext_glossary_text">' + def.substr(0, def.indexOf(")") + 1) + '</span>'));
 									def = def.substr(def.indexOf(")") + 1);
 								}
 								listEntry.append($('<span class="hd_ext_bullet_list_entry_text">' + def + '</span>'));
-								list.append(listEntry);
+								list.append(listEntry);*/
+								list.append(results[key].entries[i].definitions[j]);
 							}
 						}
 					}
 				}
 				
 				// Resize and move popup so it is inside the viewport
-				var position = {top:mousePagePosition.top, left:mousePagePosition.left};
+				var position = { top: initialPosition.top, left: initialPosition.left };
 				position.left = Math.min(position.left + 10, document.body.scrollWidth - POPUP_WIDTH - 40);
 				position.top = Math.min(position.top + 10, document.body.scrollHeight - POPUP_HEIGHT - 40);
 				popup.css({"top": Math.round(position.top), "left": Math.round(position.left), "max-width": POPUP_WIDTH, "min-width": POPUP_WIDTH, "max-height": POPUP_HEIGHT, "min-height": POPUP_HEIGHT});
@@ -209,16 +252,9 @@ function documentKeyDown(event) {
 		if(hoveredWord != "") {
 			// Create popup
 			popup = $('<div id="hoverdict"></div>').appendTo(document.body);
-			popup.append($('<span class="hd_ext_language_header">Please wait...</span>'));
 			
-			// Resize and move popup so it is inside the viewport
-			var position = { top:mousePagePosition.top, left:mousePagePosition.left };
-			position.left = Math.min(position.left + 10, document.body.scrollWidth - POPUP_WAITING_WIDTH - 40);
-			position.top = Math.min(position.top + 10, document.body.scrollHeight - POPUP_WAITING_HEIGHT - 40);
-			popup.css({"top": Math.round(position.top), "left": Math.round(position.left), "max-width": POPUP_WAITING_WIDTH, "min-width": POPUP_WAITING_WIDTH, "max-height": POPUP_WAITING_HEIGHT, "min-height": POPUP_WAITING_HEIGHT});
-
 			// Get word definition
-			createDefinition(hoveredWord);
+			lookupWord(hoveredWord, { top:mousePagePosition.top, left:mousePagePosition.left });
 		
 			// Show popup
 			popup.stop(true, true).fadeTo(100, 1.0);
@@ -231,7 +267,7 @@ function documentKeyUp(event) {
 }
 
 function documentMouseDown(event) {
-	if(!popup[0].contains(event.target)) {
+	if(popup != null && !popup[0].contains(event.target)) {
 		popup.stop(true, true).fadeOut(100,
 			function() {
 				// When animation is done, remove the popup
