@@ -1,7 +1,7 @@
 #hoverdict {
 	all: initial;
 	border: 1px solid #e3e3e3;
-	overflow-y: scroll;
+	overflow-y: auto;
 	overflow-x: hidden;
 	padding: 0em 1em 1em 1em;
 	margin: 0;
@@ -11,8 +11,6 @@
 	opacity: 0.0;
 	background: linear-gradient(to right bottom, #ffffff, #ffffff 50%, #ededed);
 	box-shadow: 3px 3px 9px 5px rgba(0,0,0,0.33);
-	max-width: 564px;
-	max-height: 284px;
 	font-family: Arial, Tahoma, sans-serif;
     font-size: 14px;
 }
@@ -52,7 +50,6 @@
 	all: initial;
 	list-style-type: disc; 
 	list-style-position: outside;
-	margin-bottom: 20em;
 }
 
 #hoverdict li {

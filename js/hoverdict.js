@@ -1,134 +1,18 @@
 var pressedKeys = {};
-var popupEnabled = false;
 var mousePagePosition = {};
 var mouseClientPosition = {};
-var popup = $('<div id="hoverdict"></div>').appendTo(document.body);
+var popup = null;
+
+var POPUP_WIDTH = 564;
+var POPUP_HEIGHT = 284;
+var POPUP_WAITING_WIDTH = 220;
+var POPUP_WAITING_HEIGHT = 57;
 
 function documentMouseMove(event) {
 	// Store mouse position
 	mousePagePosition = {top:event.pageY, left:event.pageX};
 	mouseClientPosition = {top:event.clientY, left:event.clientX};
 }
-
-
-// Calculate optimal image position and size
-/*function posImg(position) {
-	if (!imgFullSize) {
-		return;
-	}
-
-	if (position === undefined || position.top === undefined || position.left === undefined) {
-		position = {top:mousePos.top, left:mousePos.left};
-	}
-
-	var offset = 20,
-		padding = 10,
-		statusBarHeight = 15,
-		wndWidth = window.innerWidth,
-		wndHeight = window.innerHeight,
-		wndScrollLeft = (document.documentElement && document.documentElement.scrollLeft) || document.body.scrollLeft,
-		wndScrollTop = (document.documentElement && document.documentElement.scrollTop) || document.body.scrollTop,
-		bodyWidth = document.body.clientWidth,
-		displayOnRight = (position.left - wndScrollLeft < wndWidth / 2);
-
-	function posCaption() {
-		if (hzCaption) {
-			hzCaption.css('max-width', imgFullSize.width());
-			if (hzCaption.height() > 20) {
-				hzCaption.css('font-weight', 'normal');
-			}
-			// This is looped 10x max just in case something
-			// goes wrong, to avoid freezing the process.
-			var i = 0;
-			while (hz.hzImg.height() > wndHeight - statusBarHeight && i++ < 10) {
-				imgFullSize.height(wndHeight - padding - statusBarHeight - hzCaption.height()).width('auto');
-				hzCaption.css('max-width', imgFullSize.width());
-			}
-		}
-	}
-
-	if (displayOnRight) {
-		position.left += offset;
-	} else {
-		position.left -= offset;
-	}
-
-	if (hz.imgLoading) {
-		position.top -= 10;
-		if (!displayOnRight) {
-			position.left -= 25;
-		}
-	} else {
-		var fullZoom = options.mouseUnderlap || fullZoomKeyDown;
-
-		imgFullSize.width('auto').height('auto');
-
-		// Image natural dimensions
-		imgDetails.naturalWidth = imgFullSize.width() * options.zoomFactor;
-		imgDetails.naturalHeight = imgFullSize.height() * options.zoomFactor;
-		if (!imgDetails.naturalWidth || !imgDetails.naturalHeight) {
-			return;
-		}
-
-		// Width adjustment
-		if (fullZoom) {
-			imgFullSize.width(Math.min(imgDetails.naturalWidth, wndWidth - padding + wndScrollLeft));
-		} else {
-			if (displayOnRight) {
-				if (imgDetails.naturalWidth + padding > wndWidth - position.left) {
-					imgFullSize.width(wndWidth - position.left - padding + wndScrollLeft);
-				}
-			} else {
-				if (imgDetails.naturalWidth + padding > position.left) {
-					imgFullSize.width(position.left - padding - wndScrollLeft);
-				}
-			}
-		}
-
-		// Height adjustment
-		if (hz.hzImg.height() > wndHeight - padding - statusBarHeight) {
-			imgFullSize.height(wndHeight - padding - statusBarHeight).width('auto');
-		}
-
-		posCaption();
-
-		position.top -= hz.hzImg.height() / 2;
-
-		// Display image on the left side if the mouse is on the right
-		if (!displayOnRight) {
-			position.left -= hz.hzImg.width() + padding;
-		}
-
-		// Horizontal position adjustment if full zoom
-		if (fullZoom) {
-			if (displayOnRight) {
-				position.left = Math.min(position.left, wndScrollLeft + wndWidth - hz.hzImg.width() - padding);
-			} else {
-				position.left = Math.max(position.left, wndScrollLeft);
-			}
-		}
-
-		// Vertical position adjustments
-		var maxTop = wndScrollTop + wndHeight - hz.hzImg.height() - padding - statusBarHeight;
-		if (position.top > maxTop) {
-			position.top = maxTop;
-		}
-		if (position.top < wndScrollTop) {
-			position.top = wndScrollTop;
-		}
-
-		if (options.ambilightEnabled) {
-			updateAmbilight();
-		}
-	}
-
-	// This fixes positioning when the body's width is not 100%
-	if (body100pct) {
-		position.left -= (wndWidth - bodyWidth) / 2;
-	}
-
-	hz.hzImg.css({top:Math.round(position.top), left:Math.round(position.left)});
-}*/
 
 function walkTheDOM(node, func) {
     func(node);
@@ -276,6 +160,7 @@ function createDefinition(word) {
 				
 				popup.empty();
 				
+				// Create popup HTML
 				for(var key in results) {
 					if(results.hasOwnProperty(key)) {
 						// Language
@@ -294,7 +179,6 @@ function createDefinition(word) {
 							for(var j = 0; j < results[key].entries[i].definitions.length; j++) {
 								var def = results[key].entries[i].definitions[j];
 								var listEntry = $('<li></li>');
-								console.log(def.charAt(0));
 								if(def.charAt(0) == "(" && def.indexOf(")") > 0) {
 									listEntry.append($('<span class="hd_ext_glossary_text">' + def.substr(0, def.indexOf(")") + 1) + '</span>'));
 									def = def.substr(def.indexOf(")") + 1);
@@ -306,33 +190,39 @@ function createDefinition(word) {
 					}
 				}
 				
-				//$("<h2>" + (word.charAt(0).toUpperCase() + word.slice(1)) + " " + results[language].pronunciation + "</h2>").appendTo(popup);
+				// Resize and move popup so it is inside the viewport
+				var position = {top:mousePagePosition.top, left:mousePagePosition.left};
+				position.left = Math.min(position.left + 10, document.body.scrollWidth - POPUP_WIDTH - 40);
+				position.top = Math.min(position.top + 10, document.body.scrollHeight - POPUP_HEIGHT - 40);
+				popup.css({"top": Math.round(position.top), "left": Math.round(position.left), "max-width": POPUP_WIDTH, "min-width": POPUP_WIDTH, "max-height": POPUP_HEIGHT, "min-height": POPUP_HEIGHT});
 			} else {
-				popup.html('Definition for "' + word + '" not found');
+				popup.html($('<span class="hd_ext_language_header">Definition for <i>' + word + '</i> not found</span>'));
 			}
 		});
 }
 
 function documentKeyDown(event) {
 	pressedKeys[event.keyCode] = true;
-	if(!popupEnabled && pressedKeys[16] && pressedKeys[17]) {
-		// Move popup to mouse position
-		var position = {top:mousePagePosition.top, left:mousePagePosition.left};
-		position.top += 10;
-		position.left += 10;
-		popup.css({top:Math.round(position.top), left:Math.round(position.left)});
-		
+	if(popup == null && pressedKeys[16] && pressedKeys[17]) {
 		// Return the word the cursor is over
 		var hoveredWord = getFullWord(mouseClientPosition);
+		if(hoveredWord != "") {
+			// Create popup
+			popup = $('<div id="hoverdict"></div>').appendTo(document.body);
+			popup.append($('<span class="hd_ext_language_header">Please wait...</span>'));
+			
+			// Resize and move popup so it is inside the viewport
+			var position = { top:mousePagePosition.top, left:mousePagePosition.left };
+			position.left = Math.min(position.left + 10, document.body.scrollWidth - POPUP_WAITING_WIDTH - 40);
+			position.top = Math.min(position.top + 10, document.body.scrollHeight - POPUP_WAITING_HEIGHT - 40);
+			popup.css({"top": Math.round(position.top), "left": Math.round(position.left), "max-width": POPUP_WAITING_WIDTH, "min-width": POPUP_WAITING_WIDTH, "max-height": POPUP_WAITING_HEIGHT, "min-height": POPUP_WAITING_HEIGHT});
 
-		// Get word definition
-		popup.empty();
-		popup.html("Please wait...");
-		createDefinition(hoveredWord);
-	
-		// Show popup
-		popup.stop(true, true).fadeTo(100, 1.0);
-		popupEnabled = true;
+			// Get word definition
+			createDefinition(hoveredWord);
+		
+			// Show popup
+			popup.stop(true, true).fadeTo(100, 1.0);
+		}
 	}
 }
 
@@ -342,8 +232,13 @@ function documentKeyUp(event) {
 
 function documentMouseDown(event) {
 	if(!popup[0].contains(event.target)) {
-		popup.stop(true, true).fadeOut(100);
-		popupEnabled = false;
+		popup.stop(true, true).fadeOut(100,
+			function() {
+				// When animation is done, remove the popup
+				popup.remove();
+				popup = null;
+			}
+		);
 	}
 }
 
