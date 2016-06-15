@@ -18,6 +18,16 @@ function openInNewTab(url) {
 	window.open(url, '_blank').focus();
 }
 
+function getSelectionText() {
+    var text = "";
+    if (window.getSelection) {
+        text = window.getSelection().toString();
+    } else if (document.selection && document.selection.type != "Control") {
+        text = document.selection.createRange().text;
+    }
+    return text;
+}
+
 function walkTheDOM(node, func) {
     func(node);
     node = node.firstChild;
@@ -247,14 +257,21 @@ function lookupWord(word, initialPosition) {
 function documentKeyDown(event) {
 	pressedKeys[event.keyCode] = true;
 	if(popup == null && pressedKeys[16] && pressedKeys[17]) {
+		// Get selected text
+		var word = getSelectionText();
+		
+		// If no text is selected, use word under cursor
+		if(word == "") {
+			word = getFullWord(mouseClientPosition);
+		}
+		
 		// Return the word the cursor is over
-		var hoveredWord = getFullWord(mouseClientPosition);
-		if(hoveredWord != "") {
+		if(word != "") {
 			// Create popup
 			popup = $('<div id="hoverdict"></div>').appendTo(document.body);
 			
 			// Get word definition
-			lookupWord(hoveredWord, { top:mousePagePosition.top, left:mousePagePosition.left });
+			lookupWord(word, { top:mousePagePosition.top, left:mousePagePosition.left });
 		
 			// Show popup
 			popup.stop(true, true).fadeTo(100, 1.0);
