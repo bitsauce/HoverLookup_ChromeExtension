@@ -1,7 +1,7 @@
 {
-	"name": "Hover Dictionary",
+	"name": "Hover Lookup",
 	"version": "1.0",
-	"description": "Holding <CTRL> + <SHIFT> while hovering over a word will show the wiktionary entry for that word in a popup.",
+	"description": "Holding <CTRL> + <SHIFT> while hovering over a word will show the wiktionary entry for that word in an inline window.",
 	"manifest_version": 2,
 	"permissions": [
 		"*://*/"
