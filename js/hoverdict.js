@@ -1,3 +1,5 @@
+var DEBUG = false;
+
 var pressedKeys = {};
 var mousePagePosition = {};
 var mouseClientPosition = {};
@@ -59,7 +61,7 @@ function lookupWord(word, initialPosition) {
 				// Create dummy element with result from API
 				var wikiEntry = $('<div></div>');
 				wikiEntry.html(json.parse.text['*']);
-				var wikiInfo = wikiEntry[0]; // Get JS object
+				var wikiInfo = wikiEntry[0].children[0]; // Get the wiki HTML
 				
 				// Result map
 				var results = {};
@@ -81,7 +83,7 @@ function lookupWord(word, initialPosition) {
 				
 				var state = SearchState.FIND_LANGUAGE;
 				var language = "";
-				
+
 				for (var i = 0; i < wikiInfo.children.length; i++) {
 					var child = wikiInfo.children[i];
 					switch(state) {
@@ -99,7 +101,7 @@ function lookupWord(word, initialPosition) {
 									}
 								}
 								
-								console.log("Current language:", language);
+								if(DEBUG == true) console.log("Current language:", language);
 							}
 						}
 						break;
@@ -109,7 +111,7 @@ function lookupWord(word, initialPosition) {
 							if(entry != null) {
 								results[language].entries.push(entry);
 								
-								console.log("Entry added:", entry);
+								if(DEBUG == true) console.log("Entry added:", entry);
 								
 								entry = null;
 							}
@@ -128,10 +130,10 @@ function lookupWord(word, initialPosition) {
 								}
 								
 								if(state == SearchState.FIND_NEW_SECTION) {
-									console.log("Section ignored:", sectionName);
+									if(DEBUG == true) console.log("Section ignored:", sectionName);
 								}
 								else {
-									console.log("Section entered:", sectionName);
+									if(DEBUG == true) console.log("Section entered:", sectionName);
 								}
 							}
 							else if(child.tagName == "HR") {
@@ -150,7 +152,7 @@ function lookupWord(word, initialPosition) {
 								}
 								state = SearchState.FIND_NEW_SECTION;
 								
-								console.log("Pronunciation found:", results[language].pronunciation);
+								if(DEBUG == true) console.log("Pronunciation found:", results[language].pronunciation);
 							}
 						}
 						break;
@@ -198,12 +200,12 @@ function lookupWord(word, initialPosition) {
 						}
 					}
 				}
-				
+
 				// Add entry
 				if(entry != null) {
 					results[language].entries.push(entry);
 					
-					console.log("Entry added:", entry);
+					if(DEBUG == true) console.log("Entry added:", entry);
 				}
 				
 				popup.empty();
