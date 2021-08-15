@@ -7,8 +7,9 @@ function loadOptions() {
     console.log('lang_list: ' + properties['lang_list'])
 
     var langList = properties['lang_list']
-    if (langList == undefined || langList.length == 0) {
-      langList = $("input[name='lang']").toArray().map(function getId(e) { return e.id} );
+    if (langList == undefined) {
+      // When language list is empty, there is no filtering; when non-empty, this list gives the available languages.
+      langList = [];
     }
     langList.forEach(function(value, index, array) {
       document.getElementById(value).checked = true;
@@ -19,13 +20,10 @@ function loadOptions() {
 
 function saveOptions() {
   var langList = $("input[name='lang']:checked").toArray().map(function getId(e) { return e.id} );
-  display_all_languages = langList.length == 0;
-  if (display_all_languages) {
-    langList = $("input[name='lang']").toArray().map(function getId(e) { return e.id} );
-    langList.forEach(function(value, index, array) {
-      document.getElementById(value).checked = true;
-    });
-  }
+  langList.forEach(function(value, index, array) {
+    document.getElementById(value).checked = true;
+  });
+
   chrome.storage.local.set({'lang_list': langList}, function() {
     console.log('lang_list set to: ' + langList);
   })
