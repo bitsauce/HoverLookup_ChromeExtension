@@ -258,7 +258,10 @@ function lookupWord(word, initialPosition) {
 
 function documentKeyDown(event) {
 	pressedKeys[event.keyCode] = true;
-	if(popup == null && pressedKeys[16] && pressedKeys[17]) {
+	if(pressedKeys[16] && pressedKeys[17]) {
+		// close existing popup
+		closePopup();
+
 		// Get selected text
 		var word = getSelectionText();
 		
@@ -285,9 +288,9 @@ function documentKeyUp(event) {
 	pressedKeys[event.keyCode] = false;
 }
 
-function documentMouseDown(event) {
+function closePopup() {
 	if(popup != null && !popup[0].contains(event.target)) {
-		popup.stop(true, true).fadeOut(100,
+		popup.stop(true, true).fadeOut(0,
 			function() {
 				// When animation is done, remove the popup
 				popup.remove();
@@ -295,6 +298,10 @@ function documentMouseDown(event) {
 			}
 		);
 	}
+}
+
+function documentMouseDown(event) {
+	closePopup();
 }
 
 $(document).mousemove(documentMouseMove).keydown(documentKeyDown).keyup(documentKeyUp).mousedown(documentMouseDown);
