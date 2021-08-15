@@ -1,10 +1,12 @@
 {
 	"name": "Hover Lookup",
-	"version": "1.1.1",
+	"version": "1.1.2",
 	"description": "Holding <CTRL> + <SHIFT> while hovering over a word will show the wiktionary entry for that word in an inline window.",
 	"manifest_version": 2,
+	"options_page": "options.html",
 	"permissions": [
-		"*://*/"
+		"*://*/",
+		"storage"
 	],
 	"icons": {
 		"16": "icon/icon_16.png",
