@@ -6,3 +6,9 @@ function onMessage(request, sender, callback) {
 }
 
 chrome.runtime.onMessage.addListener(onMessage);
+
+chrome.runtime.onInstalled.addListener(details => {
+	chrome.storage.local.set({'lang_list': []}, function() {
+    	console.log('lang_list set to: ' + []);
+  	});
+});
