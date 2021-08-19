@@ -1,4 +1,4 @@
-var DEBUG = true;
+var DEBUG = false;
 
 var pressedKeys = {};
 var mousePagePosition = {};
@@ -56,7 +56,7 @@ function lookupWord(word, initialPosition) {
 	// Get available languages.
 	var languages = null;
 	chrome.storage.local.get('lang_list', function(properties) {
-		console.log('lang_list: ' + properties['lang_list']);
+		if (DEBUG == true) console.log('lang_list: ' + properties['lang_list']);
 		languages = properties['lang_list'];
 	});
 	
