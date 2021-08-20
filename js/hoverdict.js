@@ -10,6 +10,7 @@ var POPUP_HEIGHT = 284;
 var POPUP_WAITING_WIDTH = 220;
 var POPUP_WAITING_HEIGHT = 57;
 
+
 function documentMouseMove(event) {
 	// Store mouse position
 	mousePagePosition = {top:event.pageY, left:event.pageX};
@@ -51,6 +52,13 @@ function lookupWord(word, initialPosition) {
 	position.left = Math.min(position.left + 10, document.body.scrollWidth - POPUP_WAITING_WIDTH - 40);
 	position.top = Math.min(position.top + 10, document.body.scrollHeight - POPUP_WAITING_HEIGHT - 40);
 	popup.css({"top": Math.round(position.top), "left": Math.round(position.left), "max-width": POPUP_WAITING_WIDTH, "min-width": POPUP_WAITING_WIDTH, "max-height": POPUP_WAITING_HEIGHT, "min-height": POPUP_WAITING_HEIGHT});
+
+	// Get available languages.
+	var languages = null;
+	chrome.storage.local.get('lang_list', function(properties) {
+		if (DEBUG == true) console.log('lang_list: ' + properties['lang_list']);
+		languages = properties['lang_list'];
+	});
 	
 	// Make API call
 	word = word.toLowerCase();
@@ -92,13 +100,16 @@ function lookupWord(word, initialPosition) {
 							if(child.children.length > 0 && child.children[0].className == "mw-headline") {
 								language = child.textContent.substr(0, child.textContent.length - 6);
 								state = SearchState.FIND_NEW_SECTION;
-								
-								// Add language to map if it doesn't exist
-								if(!(language in results)) {
-									results[language] = {
-										pronunciation: null,
-										entries: []
-									}
+							
+								// Skip if language is not included
+								if (languages.length == 0 || languages.includes(language.toLowerCase())) {
+									// Add language to map if it doesn't exist
+									if(!(language in results)) {
+										results[language] = {
+											pronunciation: null,
+											entries: []
+										}
+									}	
 								}
 								
 								if(DEBUG == true) console.log("Current language:", language);
@@ -109,7 +120,8 @@ function lookupWord(word, initialPosition) {
 						case SearchState.FIND_NEW_SECTION: {
 							// Add entry
 							if(entry != null) {
-								results[language].entries.push(entry);
+								if (language in results)
+									results[language].entries.push(entry);
 								
 								if(DEBUG == true) console.log("Entry added:", entry);
 								
@@ -147,12 +159,12 @@ function lookupWord(word, initialPosition) {
 							// Find and store pronunciation
 							if(child.tagName == "UL" && child.children[0].tagName == "LI") {
 								var ipa = child.children[0].getElementsByClassName("IPA");
-								if(ipa.length > 0) {
+								if(language in results && ipa.length > 0) {
 									results[language].pronunciation = ipa[0].textContent;
 								}
 								state = SearchState.FIND_NEW_SECTION;
 								
-								if(DEBUG == true) console.log("Pronunciation found:", results[language].pronunciation);
+								if(language in results && DEBUG == true) console.log("Pronunciation found:", results[language].pronunciation);
 							}
 						}
 						break;
@@ -202,7 +214,7 @@ function lookupWord(word, initialPosition) {
 				}
 
 				// Add entry
-				if(entry != null) {
+				if(language in results && entry != null) {
 					results[language].entries.push(entry);
 					
 					if(DEBUG == true) console.log("Entry added:", entry);
@@ -258,7 +270,10 @@ function lookupWord(word, initialPosition) {
 
 function documentKeyDown(event) {
 	pressedKeys[event.keyCode] = true;
-	if(popup == null && pressedKeys[16] && pressedKeys[17]) {
+	if(pressedKeys[16] && pressedKeys[17]) {
+		// close existing popup
+		closePopup();
+
 		// Get selected text
 		var word = getSelectionText();
 		
@@ -285,9 +300,9 @@ function documentKeyUp(event) {
 	pressedKeys[event.keyCode] = false;
 }
 
-function documentMouseDown(event) {
+function closePopup() {
 	if(popup != null && !popup[0].contains(event.target)) {
-		popup.stop(true, true).fadeOut(100,
+		popup.stop(true, true).fadeOut(0,
 			function() {
 				// When animation is done, remove the popup
 				popup.remove();
@@ -295,6 +310,10 @@ function documentMouseDown(event) {
 			}
 		);
 	}
+}
+
+function documentMouseDown(event) {
+	closePopup();
 }
 
 $(document).mousemove(documentMouseMove).keydown(documentKeyDown).keyup(documentKeyUp).mousedown(documentMouseDown);
